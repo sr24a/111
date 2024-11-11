@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة المدير</title>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #2c2c2c;
+            padding: 40px;
+            color: #fff;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+            background-color: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .admin-section h2 {
+            margin-bottom: 20px;
+            color: #f5c242;
+        }
+        .admin-section button {
+            padding: 15px 30px;
+            margin-right: 10px;
+            border-radius: 30px;
+            border: none;
+            background-color: #f5c242;
+            color: #2c2c2c;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .admin-section button:hover {
+            background-color: #e5a823;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .dashboard div {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1;
+            margin-right: 20px;
+        }
+        .dashboard div:last-child {
+            margin-right: 0;
+        }
+        .form-container {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .form-container input, .form-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+            background-color: #444;
+            color: white;
+        }
+        .form-container button {
+            padding: 10px 20px;
+            background-color: #f5c242;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: black;
+            font-size: 16px;
+        }
+        .form-container button:hover {
+            background-color: #e5a823;
+        }
+        .product-list, .employee-list {
+            background-color: #1c1c1c;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .product-item, .employee-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>صفحة المدير</h1>
+
+    <div class="dashboard">
+        <div>
+            <h2>إجمالي الموظفين</h2>
+            <p id="totalEmployees">0</p>
+        </div>
+        <div>
+            <h2>إجمالي الرواتب</h2>
+            <p id="totalSalaries">0 ريال</p>
+        </div>
+        <div>
+            <h2>إجمالي المنتجات</h2>
+            <p id="totalProducts">0</p>
+        </div>
+        <div>
+            <h2>الميزانية المتاحة</h2>
+            <p id="budget">0 ريال</p>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h2>تحديث الميزانية</h2>
+        <input type="number" id="budgetInput" placeholder="أدخل الميزانية الجديدة">
+        <button onclick="updateBudget()">تحديث الميزانية</button>
+    </div>
+
+    <div class="admin-section">
+        <h2>إدارة المنتجات</h2>
+        <button onclick="showAddProductForm()">إضافة منتج</button>
+        <button onclick="showEditProductForm()">تعديل منتج</button>
+        <button onclick="showManageStockForm()">إدارة المخزون</button>
+    </div>
+
+    <!-- نموذج إضافة منتج -->
+    <div class="form-container" id="addProductForm" style="display:none;">
+        <h2>إضافة منتج جديد</h2>
+        <input type="text" id="newProductName" placeholder="اسم المنتج">
+        <input type="number" id="newProductPrice" placeholder="السعر">
+        <input type="number" id="newProductStock" placeholder="الكمية المتوفرة">
+        <button onclick="addProduct()">إضافة المنتج</button>
+    </div>
+
+    <!-- نموذج تعديل منتج -->
+    <div class="form-container" id="editProductForm" style="display:none;">
+        <h2>تعديل منتج</h2>
+        <select id="editProductSelect">
+            <option value="">اختر المنتج للتعديل</option>
+        </select>
+        <input type="text" id="editProductName" placeholder="اسم المنتج الجديد">
+        <input type="number" id="editProductPrice" placeholder="السعر الجديد">
+        <input type="number" id="editProductStock" placeholder="الكمية الجديدة">
+        <button onclick="editProduct()">حفظ التعديلات</button>
+    </div>
+
+    <!-- نموذج إدارة المخزون -->
+    <div class="form-container" id="manageStockForm" style="display:none;">
+        <h2>إدارة المخزون</h2>
+        <select id="stockProductSelect">
+            <option value="">اختر المنتج</option>
+        </select>
+        <input type="number" id="newStockQuantity" placeholder="الكمية الجديدة">
+        <button onclick="updateStock()">تحديث المخزون</button>
+    </div>
+
+    <!-- قائمة المنتجات -->
+    <div class="product-list">
+        <h2>قائمة المنتجات</h2>
+        <div id="productItems"></div>
+    </div>
+
+    <script>
+        // دالة لتحديث لوحة التحكم
+        function updateDashboard() {
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            
+            // حساب إجمالي عدد الموظفين
+            document.getElementById('totalEmployees').innerText = employees.length;
+
+            // حساب إجمالي الرواتب
+            const totalSalaries = employees.reduce((sum, employee) => sum + (parseFloat(employee.salary) || 0), 0);
+            document.getElementById('totalSalaries').innerText = totalSalaries + " ريال";
+
+            // حساب إجمالي المنتجات
+            document.getElementById('totalProducts').innerText = products.length;
+        }
+
+        // دالة لتحديث الميزانية
+        function updateBudget() {
+            const budgetInput = document.getElementById('budgetInput').value;
+            const budget = parseFloat(budgetInput);
+            if (!isNaN(budget)) {
+                localStorage.setItem('budget', budget);
+                document.getElementById('budget').innerText = budget + " ريال";
+                alert('تم تحديث الميزانية بنجاح!');
+            } else {
+                alert('يرجى إدخال ميزانية صحيحة.');
+            }
+        }
+
+        // دالة لإظهار نموذج إضافة المنتج
+        function showAddProductForm() {
+            hideAllForms();
+            document.getElementById('addProductForm').style.display = 'block';
+        }
+
+        // دالة لإظهار نموذج تعديل المنتج
+        function showEditProductForm() {
+            hideAllForms();
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            const editProductSelect = document.getElementById('editProductSelect');
+            editProductSelect.innerHTML = '<option value="">اختر المنتج للتعديل</option>';
+            products.forEach((product, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${product.name}`;
+                editProductSelect.appendChild(option);
+            });
+            document.getElementById('editProductForm').style.display = 'block';
+        }
+
+        // دالة لإظهار نموذج إدارة المخزون
+        function showManageStockForm() {
+            hideAllForms();
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            const stockProductSelect = document.getElementById('stockProductSelect');
+            stockProductSelect.innerHTML = '<option value="">اختر المنتج</option>';
+            products.forEach((product, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${product.name}`;
+                stockProductSelect.appendChild(option);
+            });
+            document.getElementById('manageStockForm').style.display = 'block';
+        }
+
+        // دالة لإضافة منتج
+        function addProduct() {
+            const name = document.getElementById('newProductName').value;
+            const price = document.getElementById('newProductPrice').value;
+            const stock = document.getElementById('newProductStock').value;
+
+            if (name && price && stock) {
+                const products = JSON.parse(localStorage.getItem('products')) || [];
+                products.push({ name, price, stock });
+                localStorage.setItem('products', JSON.stringify(products));
+                alert('تمت إضافة المنتج بنجاح!');
+                updateProductList();
+                updateDashboard(); // تحديث لوحة التحكم بعد إضافة المنتج
+            } else {
+                alert('يرجى إدخال جميع التفاصيل.');
+            }
+        }
+
+        // دالة لتعديل منتج
+        function editProduct() {
+            const selectedIndex = document.getElementById('editProductSelect').value;
+            const name = document.getElementById('editProductName').value;
+            const price = document.getElementById('editProductPrice').value;
+            const stock = document.getElementById('editProductStock').value;
+
+            if (selectedIndex !== '' && name && price && stock) {
+                const products = JSON.parse(localStorage.getItem('products')) || [];
+                products[selectedIndex] = { name, price, stock };
+                localStorage.setItem('products', JSON.stringify(products));
+                alert('تم تعديل المنتج بنجاح!');
+                updateProductList();
+                updateDashboard(); // تحديث لوحة التحكم بعد تعديل المنتج
+            } else {
+                alert('يرجى اختيار منتج وتقديم التفاصيل.');
+            }
+        }
+
+        // دالة لتحديث المخزون
+        function updateStock() {
+            const selectedIndex = document.getElementById('stockProductSelect').value;
+            const newQuantity = document.getElementById('newStockQuantity').value;
+
+            if (selectedIndex !== '' && newQuantity) {
+                const products = JSON.parse(localStorage.getItem('products')) || [];
+                products[selectedIndex].stock = newQuantity;
+                localStorage.setItem('products', JSON.stringify(products));
+                alert('تم تحديث المخزون بنجاح!');
+                updateProductList();
+                updateDashboard(); // تحديث لوحة التحكم بعد تحديث المخزون
+            } else {
+                alert('يرجى اختيار منتج وتقديم الكمية.');
+            }
+        }
+
+        // دالة لتحديث قائمة المنتجات
+        function updateProductList() {
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            const productItemsDiv = document.getElementById('productItems');
+            productItemsDiv.innerHTML = '';
+            products.forEach((product, index) => {
+                const productItemDiv = document.createElement('div');
+                productItemDiv.classList.add('product-item');
+                productItemDiv.innerHTML = `
+                    <span>${product.name} - السعر: ${product.price} - الكمية: ${product.stock}</span>
+                    <button onclick="deleteProduct(${index})">حذف</button>
+                `;
+                productItemsDiv.appendChild(productItemDiv);
+            });
+        }
+
+        // دالة لحذف منتج
+        function deleteProduct(index) {
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            products.splice(index, 1);
+            localStorage.setItem('products', JSON.stringify(products));
+            alert('تم حذف المنتج بنجاح!');
+            updateProductList();
+            updateDashboard(); // تحديث لوحة التحكم بعد حذف المنتج
+        }
+
+        // دالة لإخفاء جميع النماذج
+        function hideAllForms() {
+            document.getElementById('addProductForm').style.display = 'none';
+            document.getElementById('editProductForm').style.display = 'none';
+            document.getElementById('manageStockForm').style.display = 'none';
+        }
+
+        // تحميل البيانات عند فتح الصفحة
+        window.onload = () => {
+            updateProductList();
+            updateDashboard(); // تحديث لوحة التحكم عند فتح الصفحة
+            // تحميل الميزانية من LocalStorage
+            const budget = localStorage.getItem('budget') || 0;
+            document.getElementById('budget').innerText = budget + " ريال";
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة الموظفين</title>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #2c2c2c;
+            padding: 40px;
+            color: #fff;
+        }
+        .form-container {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .form-container input, .form-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+            background-color: #444;
+            color: white;
+        }
+        .form-container button {
+            padding: 10px 20px;
+            background-color: #f5c242;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: black;
+            font-size: 16px;
+        }
+        .form-container button:hover {
+            background-color: #e5a823;
+        }
+        .employee-list {
+            background-color: #1c1c1c;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .employee-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>صفحة الموظفين</h1>
+
+    <div class="form-container">
+        <h2>إضافة موظف جديد</h2>
+        <input type="text" id="employeeName" placeholder="اسم الموظف">
+        <input type="text" id="employeePosition" placeholder="وظيفة الموظف">
+        <input type="number" id="employeeSalary" placeholder="راتب الموظف">
+        <input type="url" id="employeeImage" placeholder="رابط صورة الموظف">
+        <select id="employeeStatus">
+            <option value="نشط">نشط</option>
+            <option value="متوقف">متوقف</option>
+        </select>
+        <button onclick="addEmployee()">إضافة الموظف</button>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="ابحث عن موظف" oninput="filterEmployees()">
+    </div>
+
+    <div class="employee-list">
+        <h2>قائمة الموظفين</h2>
+        <div id="employeeItems"></div>
+        <p id="totalEmployees"></p>
+    </div>
+
+    <button onclick="exportToCSV()">تصدير إلى CSV</button>
+
+    <script>
+        // دالة لإضافة موظف
+        function addEmployee() {
+            const name = document.getElementById('employeeName').value;
+            const position = document.getElementById('employeePosition').value;
+            const salary = parseFloat(document.getElementById('employeeSalary').value);
+            const image = document.getElementById('employeeImage').value;
+            const status = document.getElementById('employeeStatus').value;
+
+            if (name && position && !isNaN(salary)) {
+                const employees = JSON.parse(localStorage.getItem('employees')) || [];
+                employees.push({ name, position, salary, image, status });
+                localStorage.setItem('employees', JSON.stringify(employees));
+                alert('تمت إضافة الموظف بنجاح!');
+                updateEmployeeList();
+            } else {
+                alert('يرجى إدخال جميع التفاصيل.');
+            }
+        }
+
+        // دالة لتحديث قائمة الموظفين
+        function updateEmployeeList() {
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const employeeItemsDiv = document.getElementById('employeeItems');
+            employeeItemsDiv.innerHTML = '';
+            employees.forEach((employee, index) => {
+                const employeeItemDiv = document.createElement('div');
+                employeeItemDiv.classList.add('employee-item');
+                employeeItemDiv.innerHTML = `
+                    <div>
+                        <img src="${employee.image}" alt="${employee.name}" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
+                        <span>${employee.name} - ${employee.position} - راتب: ${employee.salary} - الحالة: ${employee.status}</span>
+                    </div>
+                    <div>
+                        <button onclick="editEmployee(${index})">تعديل</button>
+                        <button onclick="deleteEmployee(${index})">حذف</button>
+                    </div>
+                `;
+                employeeItemsDiv.appendChild(employeeItemDiv);
+            });
+            document.getElementById('totalEmployees').innerText = `إجمالي عدد الموظفين: ${employees.length}`;
+        }
+
+        // دالة لحذف موظف
+        function deleteEmployee(index) {
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
+                employees.splice(index, 1);
+                localStorage.setItem('employees', JSON.stringify(employees));
+                alert('تم حذف الموظف بنجاح!');
+                updateEmployeeList();
+            }
+        }
+
+        // دالة لتعديل بيانات موظف
+        function editEmployee(index) {
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const employee = employees[index];
+            const newName = prompt("أدخل الاسم الجديد", employee.name);
+            const newPosition = prompt("أدخل الوظيفة الجديدة", employee.position);
+            const newSalary = prompt("أدخل الراتب الجديد", employee.salary);
+            const newImage = prompt("أدخل رابط الصورة الجديدة", employee.image);
+            const newStatus = prompt("أدخل الحالة الجديدة", employee.status);
+
+            if (newName && newPosition && newSalary && newImage && newStatus) {
+                employees[index] = { name: newName, position: newPosition, salary: parseFloat(newSalary), image: newImage, status: newStatus };
+                localStorage.setItem('employees', JSON.stringify(employees));
+                alert('تم تعديل بيانات الموظف بنجاح!');
+                updateEmployeeList();
+            } else {
+                alert('يرجى إدخال جميع التفاصيل.');
+            }
+        }
+
+        // دالة للبحث عن موظف
+        function filterEmployees() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const employeeItemsDiv = document.getElementById('employeeItems');
+            employeeItemsDiv.innerHTML = '';
+            employees.forEach((employee, index) => {
+                if (employee.name.toLowerCase().includes(searchTerm)) {
+                    const employeeItemDiv = document.createElement('div');
+                    employeeItemDiv.classList.add('employee-item');
+                    employeeItemDiv.innerHTML = `
+                        <div>
+                            <img src="${employee.image}" alt="${employee.name}" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
+                            <span>${employee.name} - ${employee.position} - راتب: ${employee.salary} - الحالة: ${employee.status}</span>
+                        </div>
+                        <div>
+                            <button onclick="editEmployee(${index})">تعديل</button>
+                            <button onclick="deleteEmployee(${index})">حذف</button>
+                        </div>
+                    `;
+                    employeeItemsDiv.appendChild(employeeItemDiv);
+                }
+            });
+        }
+
+        // دالة لتصدير قائمة الموظفين إلى CSV
+        function exportToCSV() {
+            const employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                employees.map(e => `${e.name},${e.position},${e.salary},${e.image},${e.status}`).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "employees.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        // تحميل الموظفين عند فتح الصفحة
+        window.onload = updateEmployeeList;
+    </script>
+</body>
+</html>
